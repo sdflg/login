@@ -59,10 +59,23 @@
             width: 90%;
             max-width: 450px;
             box-shadow: 0 0 2em rgba(0, 0, 0, 0.2);
+            position: relative; /* 추가 */
         }
         dialog::backdrop {
             background: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(2px);
+        }
+        /* #close-login-btn 스타일 추가 */
+        #close-login-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #aaa;
+        }
+        #close-login-btn:hover {
+            color: #000;
         }
         .hidden { display: none; }
     </style>
@@ -84,6 +97,7 @@
 
     <!-- 로그인 모달 -->
     <dialog id="login-dialog">
+    <span id="close-login-btn">&times;</span>
         <h1>로그인</h1>
         <input type="email" id="login-email" placeholder="이메일 (아이디)" required>
         <input type="password" id="login-password" placeholder="비밀번호" required>
@@ -147,6 +161,7 @@
       const showLoginDialogBtn = document.getElementById('show-login-dialog-btn');
       const openSignupBtn = document.getElementById('open-signup-btn');
       const closeSignupBtn = document.getElementById('close-signup-btn');
+      const closeLoginBtn = document.getElementById('close-login-btn'); // 추가
       
       const signupBtn = document.getElementById('btn-signup');
       const loginBtn = document.getElementById('btn-login');
@@ -156,6 +171,10 @@
       
       // 로그인 모달 열기
       showLoginDialogBtn.addEventListener('click', () => loginDialog.showModal());
+
+      // 로그인 모달 닫기 버튼
+      closeLoginBtn.addEventListener('click', () => loginDialog.close()); // 추가
+      
       
       // 회원가입 모달 열기 (로그인 모달 내부에서)
       openSignupBtn.addEventListener('click', () => signupDialog.showModal());
