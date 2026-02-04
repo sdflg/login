@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Firebase 로그인 & DB</title>
+    <title>Firebase 로그인</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
@@ -52,14 +52,15 @@
         .btn-success { background-color: #28a745; color: white; }
         .btn-danger { background-color: #dc3545; color: white; }
         
-        #signup-dialog {
+        dialog {
             border: none;
             border-radius: 15px;
             padding: 2em;
             width: 90%;
             max-width: 450px;
+            box-shadow: 0 0 2em rgba(0, 0, 0, 0.2);
         }
-        #signup-dialog::backdrop {
+        dialog::backdrop {
             background: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(2px);
         }
@@ -67,14 +68,11 @@
     </style>
 </head>
 <body>
-
-    <!-- 로그인 폼 -->
-    <div id="login-container" class="card">
-        <h1>로그인</h1>
-        <input type="email" id="login-email" placeholder="이메일 (아이디)" required>
-        <input type="password" id="login-password" placeholder="비밀번호" required>
-        <button type="button" id="btn-login" class="btn-primary">로그인</button>
-        <button type="button" id="open-signup-btn" class="btn-secondary">회원가입</button>
+    
+    <!-- 초기 랜딩 화면 -->
+    <div id="landing-container" class="card">
+        <h1>로그인 테스트</h1>
+        <button type="button" id="show-login-dialog-btn" class="btn-primary">로그인</button>
     </div>
 
     <!-- 로그인 후 환영 메시지 -->
@@ -83,6 +81,15 @@
         <p><span id="user-email"></span>님, 로그인되었습니다.</p>
         <button type="button" id="btn-logout" class="btn-danger">로그아웃</button>
     </div>
+
+    <!-- 로그인 모달 -->
+    <dialog id="login-dialog">
+        <h1>로그인</h1>
+        <input type="email" id="login-email" placeholder="이메일 (아이디)" required>
+        <input type="password" id="login-password" placeholder="비밀번호" required>
+        <button type="button" id="btn-login" class="btn-primary">로그인</button>
+        <button type="button" id="open-signup-btn" class="btn-secondary">회원가입</button>
+    </dialog>
 
     <!-- 회원가입 모달 -->
     <dialog id="signup-dialog">
@@ -130,21 +137,30 @@
       const db = getDatabase(app);
 
       // DOM 요소 가져오기
-      const loginContainer = document.getElementById('login-container');
+      const landingContainer = document.getElementById('landing-container');
       const welcomeContainer = document.getElementById('welcome-container');
       const userEmailSpan = document.getElementById('user-email');
       
+      const loginDialog = document.getElementById('login-dialog');
       const signupDialog = document.getElementById('signup-dialog');
+
+      const showLoginDialogBtn = document.getElementById('show-login-dialog-btn');
       const openSignupBtn = document.getElementById('open-signup-btn');
       const closeSignupBtn = document.getElementById('close-signup-btn');
+      
       const signupBtn = document.getElementById('btn-signup');
       const loginBtn = document.getElementById('btn-login');
       const logoutBtn = document.getElementById('btn-logout');
 
       // --- 이벤트 리스너 ---
-
-      // 회원가입 모달 열기/닫기
+      
+      // 로그인 모달 열기
+      showLoginDialogBtn.addEventListener('click', () => loginDialog.showModal());
+      
+      // 회원가입 모달 열기 (로그인 모달 내부에서)
       openSignupBtn.addEventListener('click', () => signupDialog.showModal());
+      
+      // 회원가입 모달 닫기
       closeSignupBtn.addEventListener('click', () => signupDialog.close());
 
       // 회원가입 처리
@@ -154,18 +170,15 @@
           const confirm = document.getElementById('signup-password-confirm').value;
 
           if (!email || !password || !confirm) {
-              alert('모든 필드를 입력해주세요.');
-              return;
+              alert('모든 필드를 입력해주세요.'); return;
           }
           if (password !== confirm) {
-              alert('비밀번호가 일치하지 않습니다.');
-              return;
+              alert('비밀번호가 일치하지 않습니다.'); return;
           }
 
           createUserWithEmailAndPassword(auth, email, password)
               .then((userCredential) => {
                   const user = userCredential.user;
-                  // Auth 생성 성공 후, Realtime Database에 데이터 저장
                   return set(ref(db, 'users/' + user.uid), {
                       email: user.email,
                       createdAt: Date.now()
@@ -175,19 +188,7 @@
                   });
               })
               .catch((error) => {
-                  // Firebase 에러 코드에 따라 더 친절한 메시지 제공 가능
-                  let errorMessage = "오류가 발생했습니다.";
-                  switch (error.code) {
-                      case "auth/email-already-in-use":
-                          errorMessage = "이미 사용 중인 이메일입니다.";
-                          break;
-                      case "auth/weak-password":
-                          errorMessage = "비밀번호는 6자 이상이어야 합니다.";
-                          break;
-                      default:
-                          errorMessage = error.message;
-                  }
-                  alert(`회원가입 실패: ${errorMessage}`);
+                  alert(`회원가입 실패: ${error.message}`);
               });
       });
 
@@ -197,11 +198,13 @@
           const password = document.getElementById('login-password').value;
           
           if (!email || !password) {
-              alert('이메일과 비밀번호를 입력해주세요.');
-              return;
+              alert('이메일과 비밀번호를 입력해주세요.'); return;
           }
 
           signInWithEmailAndPassword(auth, email, password)
+              .then((userCredential) => {
+                  loginDialog.close(); // 로그인 성공 시 모달 닫기
+              })
               .catch((error) => {
                   alert(`로그인 실패: ${error.message}`);
               });
@@ -209,19 +212,17 @@
       
       // 로그아웃 처리
       logoutBtn.addEventListener('click', () => {
-          signOut(auth).catch((error) => {
-              alert(`로그아웃 실패: ${error.message}`);
-          });
+          signOut(auth).catch((error) => alert(`로그아웃 실패: ${error.message}`));
       });
 
       // 인증 상태 변경 감지
       onAuthStateChanged(auth, (user) => {
           if (user) {
-              loginContainer.classList.add('hidden');
+              landingContainer.classList.add('hidden');
               welcomeContainer.classList.remove('hidden');
               userEmailSpan.textContent = user.email;
           } else {
-              loginContainer.classList.remove('hidden');
+              landingContainer.classList.remove('hidden');
               welcomeContainer.classList.add('hidden');
               userEmailSpan.textContent = '';
           }
