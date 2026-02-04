@@ -51,6 +51,7 @@
         .btn-secondary { background-color: #6c757d; color: white; }
         .btn-success { background-color: #28a745; color: white; }
         .btn-danger { background-color: #dc3545; color: white; }
+        .btn-google { background-color: #DB4437; color: white; } /* Google 버튼 색상 */
         
         dialog {
             border: none;
@@ -112,6 +113,7 @@
         <input type="password" id="signup-password" placeholder="비밀번호" required>
         <input type="password" id="signup-password-confirm" placeholder="비밀번호 확인" required>
         <button type="button" id="btn-signup" class="btn-primary">가입하기</button>
+        <button type="button" id="google-login-btn" class="btn-google">Google 계정으로 시작하기</button> <!-- Google 로그인 버튼 추가 -->
         <button type="button" id="close-signup-btn" class="btn-secondary">닫기</button>
     </dialog>
 
@@ -124,7 +126,9 @@
           createUserWithEmailAndPassword, 
           signInWithEmailAndPassword,
           onAuthStateChanged,
-          signOut
+          signOut,
+          GoogleAuthProvider, // GoogleAuthProvider 추가
+          signInWithPopup // signInWithPopup 추가
       } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
       import { 
           getDatabase, 
@@ -162,10 +166,14 @@
       const openSignupBtn = document.getElementById('open-signup-btn');
       const closeSignupBtn = document.getElementById('close-signup-btn');
       const closeLoginBtn = document.getElementById('close-login-btn'); // 추가
+      const googleLoginBtn = document.getElementById('google-login-btn'); // Google 로그인 버튼 DOM 요소 추가
       
       const signupBtn = document.getElementById('btn-signup');
       const loginBtn = document.getElementById('btn-login');
       const logoutBtn = document.getElementById('btn-logout');
+
+      // GoogleAuthProvider 초기화
+      const googleProvider = new GoogleAuthProvider();
 
       // --- 이벤트 리스너 ---
       
@@ -175,12 +183,33 @@
       // 로그인 모달 닫기 버튼
       closeLoginBtn.addEventListener('click', () => loginDialog.close()); // 추가
       
-      
       // 회원가입 모달 열기 (로그인 모달 내부에서)
       openSignupBtn.addEventListener('click', () => signupDialog.showModal());
       
       // 회원가입 모달 닫기
       closeSignupBtn.addEventListener('click', () => signupDialog.close());
+
+      // Google 로그인 처리
+      googleLoginBtn.addEventListener('click', () => {
+          signInWithPopup(auth, googleProvider)
+              .then((result) => {
+                  const user = result.user;
+                  // Realtime Database에 사용자 정보 저장
+                  return set(ref(db, 'users/' + user.uid), {
+                      email: user.email,
+                      displayName: user.displayName,
+                      photoURL: user.photoURL,
+                      createdAt: Date.now()
+                  }).then(() => {
+                      alert('Google 로그인 성공!');
+                      signupDialog.close();
+                  });
+              })
+              .catch((error) => {
+                  console.error("Google 로그인 오류:", error);
+                  alert(`Google 로그인 실패: ${error.message}`);
+              });
+      });
 
       // 회원가입 처리
       signupBtn.addEventListener('click', () => {
