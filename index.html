@@ -121,6 +121,40 @@
             color: #333; /* 검정색 */
             margin: 0 10px; /* 양옆 여백 */
         }
+        .lottery-history-title {
+            text-align: left;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+            color: #333;
+        }
+        .lottery-history-container {
+            margin-top: 20px;
+            text-align: left;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+            max-height: 250px; /* 스크롤을 위해 높이 제한 */
+            overflow-y: auto; /* 내용이 넘치면 스크롤 */
+            -webkit-overflow-scrolling: touch; /* 모바일에서 부드러운 스크롤 */
+        }
+        #history-container .lottery-ball {
+            width: 35px; /* 기록 내 공 크기 축소 */
+            height: 35px;
+            font-size: 0.9em; /* 글자 크기 조정 */
+            border-width: 2px; /* 테두리 두께 조정 */
+            margin: 0 2px; /* 기록 내 공 여백 조정 */
+        }
+        .lottery-history-entry {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-bottom: 1px dashed #eee;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            white-space: nowrap; /* 줄바꿈 방지 */
+            overflow-x: auto; /* 가로 스크롤 */
+            -webkit-overflow-scrolling: touch;
+            justify-content: flex-start; /* 왼쪽 정렬 */
+        }
     </style>
 </head>
 <body>
@@ -169,8 +203,9 @@
             <button type="button" id="draw-5-numbers-btn" class="btn-secondary-purple" style="margin-top: 10px;">자동 5게임</button>
             <button type="button" id="game-logout-btn" class="btn-danger" style="margin-top: 10px;">로그아웃</button>
             <button type="button" id="clear-history-btn" class="btn-danger" style="margin-top: 20px; font-size: 0.8em; padding: 8px;">기록 삭제</button>
-            <div id="history-container" style="margin-top: 20px; text-align: left; border-top: 1px solid #eee; padding-top: 10px;">
-                <h3>추첨 기록</h3>
+            <h3 class="lottery-history-title">📜 추첨 기록</h3> <!-- 제목을 밖으로 이동 -->
+            <div id="history-container" class="lottery-history-container">
+                <!-- 추첨 기록 내용이 여기에 추가됩니다. -->
             </div>
         </div>
     </div>
@@ -291,7 +326,7 @@
           
           const historyEntry = document.createElement('div');
           historyEntry.classList.add('lottery-history-entry'); // 기록 스타일링을 위한 클래스 추가
-          historyEntry.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${numbersHtml}`;
+          historyEntry.innerHTML = `<strong>${new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</strong>: ${numbersHtml}`;
           historyContainer.prepend(historyEntry); // 기록 컨테이너 맨 위에 추가
       });
 
@@ -301,14 +336,14 @@
               const numbersHtml = getLotteryNumbersHtml();
               const historyEntry = document.createElement('div');
               historyEntry.classList.add('lottery-history-entry');
-              historyEntry.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${numbersHtml}`;
+              historyEntry.innerHTML = `<strong>${new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</strong>: ${numbersHtml}`;
               historyContainer.prepend(historyEntry);
           }
       });
 
       // 기록 삭제 버튼
       clearHistoryBtn.addEventListener('click', () => {
-          historyContainer.innerHTML = '<h3>추첨 기록</h3>'; // 초기 상태로 복구
+          historyContainer.innerHTML = ''; // 초기 상태로 복구 (제목은 밖으로 이동)
       });
 
 
@@ -369,7 +404,7 @@
                       signupDialog.close();
                       authSection.style.display = 'none';
                       gameSection.style.display = 'block';
-                      drawLotteryNumbers(); // 로그인 후 바로 추첨기 시작
+                      lotteryResultDiv.innerHTML = getLotteryNumbersHtml(); // 로그인 후 바로 추첨기 시작
                   });
               })
               .catch((error) => {
@@ -462,7 +497,7 @@
               document.getElementById('signup-password').value = '';
               document.getElementById('signup-password-confirm').value = '';
               lotteryResultDiv.innerHTML = ''; // 추첨 결과 초기화
-              historyContainer.innerHTML = '<h3>추첨 기록</h3>'; // 기록 컨테이너 초기화
+              historyContainer.innerHTML = ''; // 기록 컨테이너 초기화
           }).catch((error) => {
               console.error("로그아웃 실패:", error);
               alert(`로그아웃 실패: ${error.message}`);
@@ -481,7 +516,7 @@
               gameSection.style.display = 'none';
               userEmailSpan.textContent = '';
               lotteryResultDiv.innerHTML = ''; // 추첨 결과 초기화
-              historyContainer.innerHTML = '<h3>추첨 기록</h3>'; // 기록 컨테이너 초기화
+              historyContainer.innerHTML = ''; // 기록 컨테이너 초기화
           }
       });
 
