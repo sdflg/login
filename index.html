@@ -80,44 +80,78 @@
             color: #000;
         }
         .hidden { display: none; }
+
+        /* 연금복권 번호 스타일 */
+        .lottery-ball {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #f0f0f0;
+            color: #333;
+            font-weight: bold;
+            font-size: 1em;
+            margin: 0 2px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .lottery-group-ball {
+            background-color: #dc3545; /* 빨간색 */
+            color: white;
+        }
+        .lottery-number-ball {
+            background-color: #4CAF50; /* 초록색 (다른 색상으로 변경 가능) */
+            color: white;
+        }
     </style>
 </head>
 <body>
-    
-    <!-- 초기 랜딩 화면 -->
-    <div id="landing-container" class="card">
-        <h1>로그인 테스트</h1>
-        <button type="button" id="show-login-dialog-btn" class="btn-primary">로그인</button>
-        <button type="button" id="api-test-btn" class="btn-api-test">공공API 연습</button> <!-- API 테스트 버튼 추가 -->
+    <div id="auth-section">
+        <!-- 초기 랜딩 화면 -->
+        <div id="landing-container" class="card">
+            <h1>로그인 테스트</h1>
+            <button type="button" id="show-login-dialog-btn" class="btn-primary">로그인</button>
+            <button type="button" id="api-test-btn" class="btn-api-test">공공API 연습</button> <!-- API 테스트 버튼 추가 -->
+        </div>
+
+        <!-- 로그인 후 환영 메시지 -->
+        <div id="welcome-container" class="card hidden">
+            <h1>환영합니다!</h1>
+            <p><span id="user-email"></span>님, 로그인되었습니다.</p>
+            <button type="button" id="btn-logout" class="btn-danger">로그아웃</button>
+        </div>
+
+        <!-- 로그인 모달 -->
+        <dialog id="login-dialog">
+        <span id="close-login-btn">&times;</span>
+            <h1>로그인</h1>
+            <input type="email" id="login-email" placeholder="이메일 (아이디)" required>
+            <input type="password" id="login-password" placeholder="비밀번호" required>
+            <button type="button" id="btn-login" class="btn-primary">로그인</button>
+            <button type="button" id="open-signup-btn" class="btn-secondary">회원가입</button>
+        </dialog>
+
+        <!-- 회원가입 모달 -->
+        <dialog id="signup-dialog">
+            <h1>회원가입</h1>
+            <input type="email" id="signup-email" placeholder="이메일 (아이디)" required>
+            <input type="password" id="signup-password" placeholder="비밀번호" required>
+            <input type="password" id="signup-password-confirm" placeholder="비밀번호 확인" required>
+            <button type="button" id="btn-signup" class="btn-primary">가입하기</button>
+            <button type="button" id="google-login-btn" class="btn-google">Google 계정으로 시작하기</button> <!-- Google 로그인 버튼 추가 -->
+            <button type="button" id="close-signup-btn" class="btn-secondary">닫기</button>
+        </dialog>
     </div>
 
-    <!-- 로그인 후 환영 메시지 -->
-    <div id="welcome-container" class="card hidden">
-        <h1>환영합니다!</h1>
-        <p><span id="user-email"></span>님, 로그인되었습니다.</p>
-        <button type="button" id="btn-logout" class="btn-danger">로그아웃</button>
+    <div id="game-section" style="display: none;">
+        <div class="card">
+            <h2>💰 연금복권 720+ 추첨기 💰</h2>
+            <div id="lottery-result" style="margin-top: 20px; font-size: 1.5em; display: flex; justify-content: center; align-items: center; gap: 5px;"></div>
+            <button type="button" id="draw-numbers-btn" class="btn-primary" style="margin-top: 20px;">번호 추첨하기</button>
+            <button type="button" id="game-logout-btn" class="btn-danger" style="margin-top: 10px;">로그아웃</button>
+        </div>
     </div>
-
-    <!-- 로그인 모달 -->
-    <dialog id="login-dialog">
-    <span id="close-login-btn">&times;</span>
-        <h1>로그인</h1>
-        <input type="email" id="login-email" placeholder="이메일 (아이디)" required>
-        <input type="password" id="login-password" placeholder="비밀번호" required>
-        <button type="button" id="btn-login" class="btn-primary">로그인</button>
-        <button type="button" id="open-signup-btn" class="btn-secondary">회원가입</button>
-    </dialog>
-
-    <!-- 회원가입 모달 -->
-    <dialog id="signup-dialog">
-        <h1>회원가입</h1>
-        <input type="email" id="signup-email" placeholder="이메일 (아이디)" required>
-        <input type="password" id="signup-password" placeholder="비밀번호" required>
-        <input type="password" id="signup-password-confirm" placeholder="비밀번호 확인" required>
-        <button type="button" id="btn-signup" class="btn-primary">가입하기</button>
-        <button type="button" id="google-login-btn" class="btn-google">Google 계정으로 시작하기</button> <!-- Google 로그인 버튼 추가 -->
-        <button type="button" id="close-signup-btn" class="btn-secondary">닫기</button>
-    </dialog>
 
     <script type="module">
       // Firebase SDK import
@@ -175,8 +209,47 @@
       const loginBtn = document.getElementById('btn-login');
       const logoutBtn = document.getElementById('btn-logout');
 
+      // 새로 추가될 게임 섹션 관련 DOM 요소
+      const authSection = document.getElementById('auth-section');
+      const gameSection = document.getElementById('game-section');
+      const lotteryResultDiv = document.getElementById('lottery-result');
+      const drawNumbersBtn = document.getElementById('draw-numbers-btn');
+      const gameLogoutBtn = document.getElementById('game-logout-btn');
+
       // GoogleAuthProvider 초기화
       const googleProvider = new GoogleAuthProvider();
+
+      // 난수 색상 생성 헬퍼 함수
+      function getRandomColor() {
+          const letters = '0123456789ABCDEF';
+          let color = '#';
+          for (let i = 0; i < 6; i++) {
+              color += letters[Math.floor(Math.random() * 16)];
+          }
+          return color;
+      }
+
+      // 연금복권 번호 추첨 로직
+      function drawLotteryNumbers() {
+          lotteryResultDiv.innerHTML = ''; // 이전 결과 초기화
+
+          // 조(Group) 추첨 (1~5)
+          const group = Math.floor(Math.random() * 5) + 1;
+          const groupBall = document.createElement('span');
+          groupBall.classList.add('lottery-ball', 'lottery-group-ball');
+          groupBall.textContent = group + '조';
+          lotteryResultDiv.appendChild(groupBall);
+
+          // 6자리 숫자 추첨 (0~9)
+          for (let i = 0; i < 6; i++) {
+              const number = Math.floor(Math.random() * 10);
+              const numberBall = document.createElement('span');
+              numberBall.classList.add('lottery-ball');
+              numberBall.style.backgroundColor = getRandomColor(); // 랜덤 색상 적용
+              numberBall.textContent = number;
+              lotteryResultDiv.appendChild(numberBall);
+          }
+      }
 
       // --- 이벤트 리스너 ---
       
@@ -191,6 +264,10 @@
       
       // 회원가입 모달 닫기
       closeSignupBtn.addEventListener('click', () => signupDialog.close());
+
+      // 번호 추첨하기 버튼
+      drawNumbersBtn.addEventListener('click', drawLotteryNumbers);
+
 
       // 공공데이터 API 호출 로직
       apiTestBtn.addEventListener('click', async () => {
@@ -247,6 +324,9 @@
                   }).then(() => {
                       alert('Google 로그인 성공!');
                       signupDialog.close();
+                      authSection.style.display = 'none';
+                      gameSection.style.display = 'block';
+                      drawLotteryNumbers(); // 로그인 후 바로 추첨기 시작
                   });
               })
               .catch((error) => {
@@ -311,27 +391,52 @@
           signInWithEmailAndPassword(auth, email, password)
               .then((userCredential) => {
                   loginDialog.close(); // 로그인 성공 시 모달 닫기
+                  alert('로그인 성공!'); // 기존 알림 유지
+                  authSection.style.display = 'none';
+                  gameSection.style.display = 'block';
+                  drawLotteryNumbers(); // 로그인 후 바로 추첨기 시작
               })
               .catch((error) => {
                   alert(`로그인 실패: ${error.message}`);
               });
       });
       
-      // 로그아웃 처리
+      // 로그아웃 처리 (메인 화면의 로그아웃 버튼)
       logoutBtn.addEventListener('click', () => {
           signOut(auth).catch((error) => alert(`로그아웃 실패: ${error.message}`));
+      });
+
+      // 게임 화면에서 로그아웃 버튼 처리
+      gameLogoutBtn.addEventListener('click', () => {
+          signOut(auth).then(() => {
+              alert('로그아웃되었습니다.');
+              gameSection.style.display = 'none';
+              authSection.style.display = 'flex'; // Flexbox로 설정
+              // 로그인/회원가입 입력 필드 초기화
+              document.getElementById('login-email').value = '';
+              document.getElementById('login-password').value = '';
+              document.getElementById('signup-email').value = '';
+              document.getElementById('signup-password').value = '';
+              document.getElementById('signup-password-confirm').value = '';
+              lotteryResultDiv.innerHTML = ''; // 추첨 결과 초기화
+          }).catch((error) => {
+              console.error("로그아웃 실패:", error);
+              alert(`로그아웃 실패: ${error.message}`);
+          });
       });
 
       // 인증 상태 변경 감지
       onAuthStateChanged(auth, (user) => {
           if (user) {
-              landingContainer.classList.add('hidden');
-              welcomeContainer.classList.remove('hidden');
-              userEmailSpan.textContent = user.email;
+              authSection.style.display = 'none';
+              gameSection.style.display = 'block';
+              userEmailSpan.textContent = user.email; // welcome-container는 hidden이므로 여기에 userEmailSpan이 없음
+              drawLotteryNumbers(); // 로그인 후 바로 추첨기 시작
           } else {
-              landingContainer.classList.remove('hidden');
-              welcomeContainer.classList.add('hidden');
+              authSection.style.display = 'flex'; // 로그인 화면을 flex로 표시 (가운데 정렬 위함)
+              gameSection.style.display = 'none';
               userEmailSpan.textContent = '';
+              lotteryResultDiv.innerHTML = ''; // 추첨 결과 초기화
           }
       });
 
