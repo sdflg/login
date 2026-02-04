@@ -165,6 +165,19 @@
         .lottery-history-entry strong {
             margin-right: 15px; /* 시간 텍스트와 공 사이 간격 */
         }
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        .history-header #clear-history-btn { /* #clear-history-btn으로 수정 */
+            width: auto; /* 버튼의 너비 자동 조절 */
+            margin-left: 10px; /* 제목과의 간격 */
+            padding: 5px 10px; /* 버튼 패딩 조정 */
+            font-size: 0.8em; /* 폰트 크기 조정 */
+        }
     </style>
 </head>
 <body>
@@ -212,8 +225,10 @@
             <button type="button" id="draw-numbers-btn" class="btn-primary" style="margin-top: 20px;">번호 추첨하기</button>
             <button type="button" id="draw-5-numbers-btn" class="btn-secondary-purple" style="margin-top: 10px;">자동 5게임</button>
             <button type="button" id="game-logout-btn" class="btn-danger" style="margin-top: 10px;">로그아웃</button>
-            <button type="button" id="clear-history-btn" class="btn-danger" style="margin-top: 20px; font-size: 0.8em; padding: 8px;">기록 삭제</button>
-            <h3 class="lottery-history-title">📜 추첨 기록</h3> <!-- 제목을 밖으로 이동 -->
+            <div class="history-header">
+                <h3 class="lottery-history-title">📜 추첨 기록</h3> <!-- 제목을 밖으로 이동 -->
+                <button type="button" id="clear-history-btn" class="btn-danger" style="margin-top: 20px; font-size: 0.8em; padding: 8px;">기록 삭제</button>
+            </div>
             <div id="history-container" class="lottery-history-container">
                 <!-- 추첨 기록 내용이 여기에 추가됩니다. -->
             </div>
