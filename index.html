@@ -529,9 +529,7 @@
               .then((userCredential) => {
                   loginDialog.close(); // 로그인 성공 시 모달 닫기
                   alert('로그인 성공!'); // 기존 알림 유지
-                  authSection.style.display = 'none';
-                  gameSection.style.display = 'block';
-                  lotteryResultDiv.innerHTML = getLotteryNumbersHtml(); // 로그인 후 바로 추첨기 시작
+                  // 화면 전환 및 lotteryResultDiv 업데이트는 onAuthStateChanged에서 처리
               })
               .catch((error) => {
                   alert(`로그인 실패: ${error.message}`);
