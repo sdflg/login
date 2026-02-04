@@ -1,14 +1,232 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hello World</title>
-  <link href='/style.css' rel='stylesheet'>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase 로그인 & DB</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        .card {
+            background-color: #fff;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+        h1 {
+            font-size: 2em;
+            margin-bottom: 30px;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 1em;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-secondary { background-color: #6c757d; color: white; }
+        .btn-success { background-color: #28a745; color: white; }
+        .btn-danger { background-color: #dc3545; color: white; }
+        
+        #signup-dialog {
+            border: none;
+            border-radius: 15px;
+            padding: 2em;
+            width: 90%;
+            max-width: 450px;
+        }
+        #signup-dialog::backdrop {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(2px);
+        }
+        .hidden { display: none; }
+    </style>
 </head>
 <body>
-  <h1>Hello, world!</h1>
-  <button onclick="console.log('hello');">Press me</button>
-  <script defer type="text/javascript" src="/main.js"></script>
+
+    <!-- 로그인 폼 -->
+    <div id="login-container" class="card">
+        <h1>로그인</h1>
+        <input type="email" id="login-email" placeholder="이메일 (아이디)" required>
+        <input type="password" id="login-password" placeholder="비밀번호" required>
+        <button type="button" id="btn-login" class="btn-primary">로그인</button>
+        <button type="button" id="open-signup-btn" class="btn-secondary">회원가입</button>
+    </div>
+
+    <!-- 로그인 후 환영 메시지 -->
+    <div id="welcome-container" class="card hidden">
+        <h1>환영합니다!</h1>
+        <p><span id="user-email"></span>님, 로그인되었습니다.</p>
+        <button type="button" id="btn-logout" class="btn-danger">로그아웃</button>
+    </div>
+
+    <!-- 회원가입 모달 -->
+    <dialog id="signup-dialog">
+        <h1>회원가입</h1>
+        <input type="email" id="signup-email" placeholder="이메일 (아이디)" required>
+        <input type="password" id="signup-password" placeholder="비밀번호" required>
+        <input type="password" id="signup-password-confirm" placeholder="비밀번호 확인" required>
+        <button type="button" id="btn-signup" class="btn-success">가입하기</button>
+        <button type="button" id="close-signup-btn" class="btn-secondary">닫기</button>
+    </dialog>
+
+    <script type="module">
+      // Firebase SDK import
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+      import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
+      import { 
+          getAuth, 
+          createUserWithEmailAndPassword, 
+          signInWithEmailAndPassword,
+          onAuthStateChanged,
+          signOut
+      } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+      import { 
+          getDatabase, 
+          ref, 
+          set 
+      } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+      // Firebase 구성 정보
+      const firebaseConfig = {
+        apiKey: "AIzaSyC9Le4nVivvAfkjHsfJdW4cLmxQaPYY1UM",
+        authDomain: "t3st1-f1468.firebaseapp.com",
+        databaseURL: "https://t3st1-f1468-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "t3st1-f1468",
+        storageBucket: "t3st1-f1468.appspot.com",
+        messagingSenderId: "890095653625",
+        appId: "1:890095653625:web:539b75b67ff3ed68cd0828",
+        measurementId: "G-CVCXZCBSTD"
+      };
+
+      // Firebase 앱 및 서비스 초기화
+      const app = initializeApp(firebaseConfig);
+      const analytics = getAnalytics(app);
+      const auth = getAuth(app);
+      const db = getDatabase(app);
+
+      // DOM 요소 가져오기
+      const loginContainer = document.getElementById('login-container');
+      const welcomeContainer = document.getElementById('welcome-container');
+      const userEmailSpan = document.getElementById('user-email');
+      
+      const signupDialog = document.getElementById('signup-dialog');
+      const openSignupBtn = document.getElementById('open-signup-btn');
+      const closeSignupBtn = document.getElementById('close-signup-btn');
+      const signupBtn = document.getElementById('btn-signup');
+      const loginBtn = document.getElementById('btn-login');
+      const logoutBtn = document.getElementById('btn-logout');
+
+      // --- 이벤트 리스너 ---
+
+      // 회원가입 모달 열기/닫기
+      openSignupBtn.addEventListener('click', () => signupDialog.showModal());
+      closeSignupBtn.addEventListener('click', () => signupDialog.close());
+
+      // 회원가입 처리
+      signupBtn.addEventListener('click', () => {
+          const email = document.getElementById('signup-email').value;
+          const password = document.getElementById('signup-password').value;
+          const confirm = document.getElementById('signup-password-confirm').value;
+
+          if (!email || !password || !confirm) {
+              alert('모든 필드를 입력해주세요.');
+              return;
+          }
+          if (password !== confirm) {
+              alert('비밀번호가 일치하지 않습니다.');
+              return;
+          }
+
+          createUserWithEmailAndPassword(auth, email, password)
+              .then((userCredential) => {
+                  const user = userCredential.user;
+                  // Auth 생성 성공 후, Realtime Database에 데이터 저장
+                  return set(ref(db, 'users/' + user.uid), {
+                      email: user.email,
+                      createdAt: Date.now()
+                  }).then(() => {
+                      alert('회원가입 및 데이터 저장 성공!');
+                      signupDialog.close();
+                  });
+              })
+              .catch((error) => {
+                  // Firebase 에러 코드에 따라 더 친절한 메시지 제공 가능
+                  let errorMessage = "오류가 발생했습니다.";
+                  switch (error.code) {
+                      case "auth/email-already-in-use":
+                          errorMessage = "이미 사용 중인 이메일입니다.";
+                          break;
+                      case "auth/weak-password":
+                          errorMessage = "비밀번호는 6자 이상이어야 합니다.";
+                          break;
+                      default:
+                          errorMessage = error.message;
+                  }
+                  alert(`회원가입 실패: ${errorMessage}`);
+              });
+      });
+
+      // 로그인 처리
+      loginBtn.addEventListener('click', () => {
+          const email = document.getElementById('login-email').value;
+          const password = document.getElementById('login-password').value;
+          
+          if (!email || !password) {
+              alert('이메일과 비밀번호를 입력해주세요.');
+              return;
+          }
+
+          signInWithEmailAndPassword(auth, email, password)
+              .catch((error) => {
+                  alert(`로그인 실패: ${error.message}`);
+              });
+      });
+      
+      // 로그아웃 처리
+      logoutBtn.addEventListener('click', () => {
+          signOut(auth).catch((error) => {
+              alert(`로그아웃 실패: ${error.message}`);
+          });
+      });
+
+      // 인증 상태 변경 감지
+      onAuthStateChanged(auth, (user) => {
+          if (user) {
+              loginContainer.classList.add('hidden');
+              welcomeContainer.classList.remove('hidden');
+              userEmailSpan.textContent = user.email;
+          } else {
+              loginContainer.classList.remove('hidden');
+              welcomeContainer.classList.add('hidden');
+              userEmailSpan.textContent = '';
+          }
+      });
+
+    </script>
 </body>
 </html>
