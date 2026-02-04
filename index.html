@@ -204,22 +204,28 @@
                       "&sidoName=" + sidoNameEncoded +
                       "&ver=1.0";
           
-          // CORS 우회를 위한 allorigins 프록시 사용
-          const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(originalUrl);
+          // CORS 우회를 위한 corsproxy.io 프록시 사용
+          const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(originalUrl);
 
           try {
               const response = await fetch(proxyUrl);
-              const data = await response.json(); // allorigins 응답 파싱
-              
-              // allorigins 응답 내부의 실제 API 데이터 파싱
-              const realData = JSON.parse(data.contents);
-              console.log("공공데이터 API 응답 (프록시):", realData);
+              const textData = await response.text(); // 일단 텍스트로 받음
+              console.log("원본 응답 데이터:", textData); // 디버깅용 출력
 
-              if (realData.response.body.items && realData.response.body.items.length > 0) {
-                  const pm10Value = realData.response.body.items[0].pm10Value;
+              let jsonData;
+              try {
+                  jsonData = JSON.parse(textData); // JSON 파싱 시도
+              } catch (parseError) {
+                  alert("데이터를 받아왔지만 JSON 형식이 아닙니다. 콘솔을 확인하세요.");
+                  console.error("파싱 에러:", parseError);
+                  return; // JSON 파싱 실패 시 여기서 종료
+              }
+              
+              if (jsonData.response && jsonData.response.body && jsonData.response.body.items && jsonData.response.body.items.length > 0) {
+                  const pm10Value = jsonData.response.body.items[0].pm10Value;
                   alert("서울 미세먼지 농도: " + pm10Value + "㎍/㎥ 입니다.");
               } else {
-                  alert("미세먼지 정보를 찾을 수 없습니다.");
+                  alert("미세먼지 정보를 찾을 수 없거나 데이터 구조가 예상과 다릅니다.");
               }
           } catch (error) {
               console.error("API 호출 실패:", error);
