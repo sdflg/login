@@ -251,7 +251,10 @@
       import { 
           getDatabase, 
           ref, 
-          set 
+          set,
+          push, // 추가
+          onValue, // 추가
+          remove // 추가
       } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
       // Firebase 구성 정보
@@ -304,8 +307,20 @@
       // GoogleAuthProvider 초기화
       const googleProvider = new GoogleAuthProvider();
 
-      // 연금복권 번호 1세트 HTML 생성 로직
-      function getLotteryNumbersHtml() {
+      // 연금복권 번호 1세트 생성 (숫자 배열 반환)
+      function generateLotteryNumbersArray() {
+          const numbers = [];
+          // 조(Group) 추첨 (1~5)
+          numbers.push(Math.floor(Math.random() * 5) + 1);
+          // 6자리 숫자 추첨 (0~9)
+          for (let i = 0; i < 6; i++) {
+              numbers.push(Math.floor(Math.random() * 10));
+          }
+          return numbers; // [그룹, 숫자1, 숫자2, 숫자3, 숫자4, 숫자5, 숫자6]
+      }
+
+      // 숫자 배열을 바탕으로 HTML 생성
+      function createLotteryNumbersHtml(numbersArray) {
           let html = '';
           const borderColors = [
               '#e74c3c', // 빨간색
@@ -316,14 +331,12 @@
               '#9fa1a4'  // 회색
           ];
 
-          // 조(Group) 추첨 (1~5)
-          const group = Math.floor(Math.random() * 5) + 1;
+          const group = numbersArray[0];
           html += `<span class="lottery-ball lottery-group-ball">${group}</span><span class="lottery-group-text">조</span>`;
 
-          // 6자리 숫자 추첨 (0~9)
-          for (let i = 0; i < 6; i++) {
-              const number = Math.floor(Math.random() * 10);
-              const borderColor = borderColors[i]; // 순서대로 테두리 색상 적용
+          for (let i = 1; i < numbersArray.length; i++) {
+              const number = numbersArray[i];
+              const borderColor = borderColors[i - 1]; // 순서대로 테두리 색상 적용 (그룹 제외)
               html += `<span class="lottery-ball" style="border-color: ${borderColor};">${number}</span>`;
           }
           return html;
@@ -344,32 +357,11 @@
       // 회원가입 모달 닫기
       closeSignupBtn.addEventListener('click', () => signupDialog.close());
 
-      // 번호 추첨하기 버튼
-      drawNumbersBtn.addEventListener('click', () => {
-          const numbersHtml = getLotteryNumbersHtml();
-          lotteryResultDiv.innerHTML = numbersHtml; // 현재 추첨 결과 표시
-          
-          const historyEntry = document.createElement('div');
-          historyEntry.classList.add('lottery-history-entry'); // 기록 스타일링을 위한 클래스 추가
-          historyEntry.innerHTML = `<strong>${new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</strong>: ${numbersHtml}`;
-          historyContainer.prepend(historyEntry); // 기록 컨테이너 맨 위에 추가
-      });
 
-      // 자동 5게임 버튼
-      draw5NumbersBtn.addEventListener('click', () => {
-          for (let i = 0; i < 5; i++) {
-              const numbersHtml = getLotteryNumbersHtml();
-              const historyEntry = document.createElement('div');
-              historyEntry.classList.add('lottery-history-entry');
-              historyEntry.innerHTML = `<strong>${new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</strong>: ${numbersHtml}`;
-              historyContainer.prepend(historyEntry);
-          }
-      });
 
-      // 기록 삭제 버튼
-      clearHistoryBtn.addEventListener('click', () => {
-          historyContainer.innerHTML = ''; // 초기 상태로 복구 (제목은 밖으로 이동)
-      });
+
+
+
 
 
       // 공공데이터 API 호출 로직
@@ -534,14 +526,66 @@
           if (user) {
               authSection.style.display = 'none';
               gameSection.style.display = 'block';
-              userEmailSpan.textContent = user.email; // welcome-container는 hidden이므로 여기에 userEmailSpan이 없음
-              lotteryResultDiv.innerHTML = getLotteryNumbersHtml(); // 로그인 후 바로 추첨기 시작
+              userEmailSpan.textContent = user.email;
+
+              // 로그인 시점에 한 번 추첨 결과를 보여줍니다.
+              lotteryResultDiv.innerHTML = createLotteryNumbersHtml(generateLotteryNumbersArray());
+
+              const userHistoryRef = ref(db, 'users/' + user.uid + '/history');
+
+              // 3. 데이터 불러오기 및 실시간 동기화 (핵심)
+              onValue(userHistoryRef, (snapshot) => {
+                  historyContainer.innerHTML = ''; // 기록 컨테이너 비우기
+                  const historyData = snapshot.val();
+                  if (historyData) {
+                      // 최신순으로 정렬
+                      const sortedHistory = Object.values(historyData).sort((a, b) => b.timestamp - a.timestamp);
+                      sortedHistory.forEach(entry => {
+                          const historyEntryDiv = document.createElement('div');
+                          historyEntryDiv.classList.add('lottery-history-entry');
+                          const numbersHtml = createLotteryNumbersHtml(entry.numbers);
+                          // 한국 시간 형식으로 변환
+                          const date = new Date(entry.timestamp);
+                          const formattedTime = date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+                          historyEntryDiv.innerHTML = `<strong>${formattedTime}</strong>: ${numbersHtml}`;
+                          historyContainer.appendChild(historyEntryDiv);
+                      });
+                  }
+              });
+
+              // 2. 데이터 저장 로직 (추첨 버튼 클릭 시)
+              drawNumbersBtn.onclick = () => {
+                  const numbersArray = generateLotteryNumbersArray();
+                  lotteryResultDiv.innerHTML = createLotteryNumbersHtml(numbersArray); // 현재 추첨 결과 표시
+                  push(userHistoryRef, { numbers: numbersArray, timestamp: Date.now() });
+              };
+
+              // 자동 5게임 버튼
+              draw5NumbersBtn.onclick = () => {
+                  for (let i = 0; i < 5; i++) {
+                      const numbersArray = generateLotteryNumbersArray();
+                      push(userHistoryRef, { numbers: numbersArray, timestamp: Date.now() });
+                  }
+              };
+
+              // 4. 기록 삭제 기능 수정
+              clearHistoryBtn.onclick = () => {
+                  if (confirm('모든 추첨 기록을 삭제하시겠습니까?')) {
+                      remove(userHistoryRef);
+                  }
+              };
+
           } else {
               authSection.style.display = 'flex'; // 로그인 화면을 flex로 표시 (가운데 정렬 위함)
               gameSection.style.display = 'none';
               userEmailSpan.textContent = '';
               lotteryResultDiv.innerHTML = ''; // 추첨 결과 초기화
               historyContainer.innerHTML = ''; // 기록 컨테이너 초기화
+
+              // 로그아웃 시 이벤트 리스너 제거 (중복 실행 방지)
+              drawNumbersBtn.onclick = null;
+              draw5NumbersBtn.onclick = null;
+              clearHistoryBtn.onclick = null;
           }
       });
 
