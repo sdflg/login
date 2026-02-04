@@ -99,9 +99,9 @@
             border: 1px solid rgba(0, 0, 0, 0.1); /* 연한 테두리 추가 */
         }
         .lottery-group-ball {
-            background-color: rgba(220, 53, 69, 0.6); /* 빨간색 계열 반투명 */
-            color: #333; /* 진한 글자색 */
-            border: 1px solid rgba(220, 53, 69, 0.2); /* 연한 테두리 추가 */
+            background-color: rgba(240, 240, 240, 0.6); /* 흰색 배경 유지 */
+            color: #333; /* 진한 글자색 유지 */
+            border: 1px solid rgba(0, 0, 0, 0.1); /* 연한 테두리 유지 */
         }
         /* .lottery-number-ball 은 이제 getRandomRgbaColor()에 의해 개별적으로 스타일링되므로 이 클래스는 필요 없습니다. */
         .lottery-history-entry {
@@ -236,17 +236,17 @@
       // GoogleAuthProvider 초기화
       const googleProvider = new GoogleAuthProvider();
 
-      // 난수 RGBA 색상 생성 헬퍼 함수
-      function getRandomRgbaColor() {
-          const r = Math.floor(Math.random() * 256);
-          const g = Math.floor(Math.random() * 256);
-          const b = Math.floor(Math.random() * 256);
-          return `rgba(${r}, ${g}, ${b}, 0.6)`; // 0.6 투명도 적용
-      }
-
       // 연금복권 번호 1세트 HTML 생성 로직
       function getLotteryNumbersHtml() {
           let html = '';
+          const numberColors = [
+              '#e74c3c', // 빨간색
+              '#eb6123', // 주황색
+              '#f5b813', // 노랑색
+              '#2c97dd', // 파랑색
+              '#a17dd3', // 보라색
+              '#9fa1a4'  // 회색
+          ];
 
           // 조(Group) 추첨 (1~5)
           const group = Math.floor(Math.random() * 5) + 1;
@@ -255,8 +255,8 @@
           // 6자리 숫자 추첨 (0~9)
           for (let i = 0; i < 6; i++) {
               const number = Math.floor(Math.random() * 10);
-              const bgColor = getRandomRgbaColor(); // 랜덤 RGBA 색상 적용
-              html += `<span class="lottery-ball" style="background-color: ${bgColor};">${number}</span>`;
+              const bgColor = numberColors[i]; // 순서대로 색상 적용
+              html += `<span class="lottery-ball" style="background-color: ${bgColor}; color: white;">${number}</span>`; // 글씨는 흰색
           }
           return html;
       }
