@@ -203,6 +203,7 @@
             <input type="email" id="login-email" placeholder="이메일 (아이디)" required>
             <input type="password" id="login-password" placeholder="비밀번호" required>
             <button type="button" id="btn-login" class="btn-primary">로그인</button>
+            <button type="button" id="login-google-btn" class="btn-google">Google 계정으로 로그인</button>
             <button type="button" id="open-signup-btn" class="btn-secondary">회원가입</button>
         </dialog>
 
@@ -293,6 +294,8 @@
       const signupBtn = document.getElementById('btn-signup');
       const loginBtn = document.getElementById('btn-login');
       const logoutBtn = document.getElementById('btn-logout');
+
+      const loginGoogleBtn = document.getElementById('login-google-btn'); // 로그인 모달용 Google 버튼
 
       // 새로 추가될 게임 섹션 관련 DOM 요소
       const authSection = document.getElementById('auth-section');
@@ -403,6 +406,23 @@
               console.error("API 호출 실패:", error);
               alert("에러 발생: " + error.message);
           }
+      });
+
+      // 로그인 모달용 Google 로그인 처리
+      loginGoogleBtn.addEventListener('click', () => {
+          signInWithPopup(auth, googleProvider)
+              .then((result) => {
+                  // Realtime Database에 사용자 정보 저장 (선택 사항, 필요 시 추가)
+                  // const user = result.user;
+                  // set(ref(db, 'users/' + user.uid), { ... });
+                  alert('Google 로그인 성공!');
+                  loginDialog.close(); // 로그인 모달 닫기
+                  // onAuthStateChanged가 화면 전환을 처리함
+              })
+              .catch((error) => {
+                  console.error("Google 로그인 오류:", error);
+                  alert(`Google 로그인 실패: ${error.message}`);
+              });
       });
 
       // Google 로그인 처리
