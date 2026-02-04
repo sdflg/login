@@ -53,6 +53,7 @@
         .btn-danger { background-color: #dc3545; color: white; }
         .btn-google { background-color: #DB4437; color: white; } /* Google 버튼 색상 */
         .btn-api-test { background-color: #ff9800; color: white; } /* API 테스트 버튼 색상 */
+        .btn-secondary-purple { background-color: #673AB7; color: white; } /* 보라색 계열 */
         
         dialog {
             border: none;
@@ -89,20 +90,28 @@
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            background-color: #f0f0f0;
-            color: #333;
+            background-color: rgba(240, 240, 240, 0.6); /* 기본 반투명 */
+            color: #333; /* 진한 글자색 */
             font-weight: bold;
             font-size: 1em;
             margin: 0 2px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border: 1px solid rgba(0, 0, 0, 0.1); /* 연한 테두리 추가 */
         }
         .lottery-group-ball {
-            background-color: #dc3545; /* 빨간색 */
-            color: white;
+            background-color: rgba(220, 53, 69, 0.6); /* 빨간색 계열 반투명 */
+            color: #333; /* 진한 글자색 */
+            border: 1px solid rgba(220, 53, 69, 0.2); /* 연한 테두리 추가 */
         }
-        .lottery-number-ball {
-            background-color: #4CAF50; /* 초록색 (다른 색상으로 변경 가능) */
-            color: white;
+        /* .lottery-number-ball 은 이제 getRandomRgbaColor()에 의해 개별적으로 스타일링되므로 이 클래스는 필요 없습니다. */
+        .lottery-history-entry {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-bottom: 1px dashed #eee;
+            display: flex; /* 공들을 한 줄에 표시하기 위함 */
+            align-items: center; /* 세로 중앙 정렬 */
+            gap: 5px; /* 공들 사이 간격 */
+            flex-wrap: wrap; /* 내용이 길어지면 줄 바꿈 */
         }
     </style>
 </head>
@@ -149,7 +158,12 @@
             <h2>💰 연금복권 720+ 추첨기 💰</h2>
             <div id="lottery-result" style="margin-top: 20px; font-size: 1.5em; display: flex; justify-content: center; align-items: center; gap: 5px;"></div>
             <button type="button" id="draw-numbers-btn" class="btn-primary" style="margin-top: 20px;">번호 추첨하기</button>
+            <button type="button" id="draw-5-numbers-btn" class="btn-secondary-purple" style="margin-top: 10px;">자동 5게임</button>
             <button type="button" id="game-logout-btn" class="btn-danger" style="margin-top: 10px;">로그아웃</button>
+            <button type="button" id="clear-history-btn" class="btn-danger" style="margin-top: 20px; font-size: 0.8em; padding: 8px;">기록 삭제</button>
+            <div id="history-container" style="margin-top: 20px; text-align: left; border-top: 1px solid #eee; padding-top: 10px;">
+                <h3>추첨 기록</h3>
+            </div>
         </div>
     </div>
 
@@ -215,41 +229,38 @@
       const lotteryResultDiv = document.getElementById('lottery-result');
       const drawNumbersBtn = document.getElementById('draw-numbers-btn');
       const gameLogoutBtn = document.getElementById('game-logout-btn');
+      const draw5NumbersBtn = document.getElementById('draw-5-numbers-btn'); // 자동 5게임 버튼
+      const clearHistoryBtn = document.getElementById('clear-history-btn'); // 기록 삭제 버튼
+      const historyContainer = document.getElementById('history-container'); // 기록 컨테이너
 
       // GoogleAuthProvider 초기화
       const googleProvider = new GoogleAuthProvider();
 
-      // 난수 색상 생성 헬퍼 함수
-      function getRandomColor() {
-          const letters = '0123456789ABCDEF';
-          let color = '#';
-          for (let i = 0; i < 6; i++) {
-              color += letters[Math.floor(Math.random() * 16)];
-          }
-          return color;
+      // 난수 RGBA 색상 생성 헬퍼 함수
+      function getRandomRgbaColor() {
+          const r = Math.floor(Math.random() * 256);
+          const g = Math.floor(Math.random() * 256);
+          const b = Math.floor(Math.random() * 256);
+          return `rgba(${r}, ${g}, ${b}, 0.6)`; // 0.6 투명도 적용
       }
 
-      // 연금복권 번호 추첨 로직
-      function drawLotteryNumbers() {
-          lotteryResultDiv.innerHTML = ''; // 이전 결과 초기화
+      // 연금복권 번호 1세트 HTML 생성 로직
+      function getLotteryNumbersHtml() {
+          let html = '';
 
           // 조(Group) 추첨 (1~5)
           const group = Math.floor(Math.random() * 5) + 1;
-          const groupBall = document.createElement('span');
-          groupBall.classList.add('lottery-ball', 'lottery-group-ball');
-          groupBall.textContent = group + '조';
-          lotteryResultDiv.appendChild(groupBall);
+          html += `<span class="lottery-ball lottery-group-ball">${group}조</span>`;
 
           // 6자리 숫자 추첨 (0~9)
           for (let i = 0; i < 6; i++) {
               const number = Math.floor(Math.random() * 10);
-              const numberBall = document.createElement('span');
-              numberBall.classList.add('lottery-ball');
-              numberBall.style.backgroundColor = getRandomColor(); // 랜덤 색상 적용
-              numberBall.textContent = number;
-              lotteryResultDiv.appendChild(numberBall);
+              const bgColor = getRandomRgbaColor(); // 랜덤 RGBA 색상 적용
+              html += `<span class="lottery-ball" style="background-color: ${bgColor};">${number}</span>`;
           }
+          return html;
       }
+
 
       // --- 이벤트 리스너 ---
       
@@ -266,7 +277,31 @@
       closeSignupBtn.addEventListener('click', () => signupDialog.close());
 
       // 번호 추첨하기 버튼
-      drawNumbersBtn.addEventListener('click', drawLotteryNumbers);
+      drawNumbersBtn.addEventListener('click', () => {
+          const numbersHtml = getLotteryNumbersHtml();
+          lotteryResultDiv.innerHTML = numbersHtml; // 현재 추첨 결과 표시
+          
+          const historyEntry = document.createElement('div');
+          historyEntry.classList.add('lottery-history-entry'); // 기록 스타일링을 위한 클래스 추가
+          historyEntry.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${numbersHtml}`;
+          historyContainer.prepend(historyEntry); // 기록 컨테이너 맨 위에 추가
+      });
+
+      // 자동 5게임 버튼
+      draw5NumbersBtn.addEventListener('click', () => {
+          for (let i = 0; i < 5; i++) {
+              const numbersHtml = getLotteryNumbersHtml();
+              const historyEntry = document.createElement('div');
+              historyEntry.classList.add('lottery-history-entry');
+              historyEntry.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${numbersHtml}`;
+              historyContainer.prepend(historyEntry);
+          }
+      });
+
+      // 기록 삭제 버튼
+      clearHistoryBtn.addEventListener('click', () => {
+          historyContainer.innerHTML = '<h3>추첨 기록</h3>'; // 초기 상태로 복구
+      });
 
 
       // 공공데이터 API 호출 로직
@@ -394,7 +429,7 @@
                   alert('로그인 성공!'); // 기존 알림 유지
                   authSection.style.display = 'none';
                   gameSection.style.display = 'block';
-                  drawLotteryNumbers(); // 로그인 후 바로 추첨기 시작
+                  lotteryResultDiv.innerHTML = getLotteryNumbersHtml(); // 로그인 후 바로 추첨기 시작
               })
               .catch((error) => {
                   alert(`로그인 실패: ${error.message}`);
@@ -419,6 +454,7 @@
               document.getElementById('signup-password').value = '';
               document.getElementById('signup-password-confirm').value = '';
               lotteryResultDiv.innerHTML = ''; // 추첨 결과 초기화
+              historyContainer.innerHTML = '<h3>추첨 기록</h3>'; // 기록 컨테이너 초기화
           }).catch((error) => {
               console.error("로그아웃 실패:", error);
               alert(`로그아웃 실패: ${error.message}`);
@@ -431,12 +467,13 @@
               authSection.style.display = 'none';
               gameSection.style.display = 'block';
               userEmailSpan.textContent = user.email; // welcome-container는 hidden이므로 여기에 userEmailSpan이 없음
-              drawLotteryNumbers(); // 로그인 후 바로 추첨기 시작
+              lotteryResultDiv.innerHTML = getLotteryNumbersHtml(); // 로그인 후 바로 추첨기 시작
           } else {
               authSection.style.display = 'flex'; // 로그인 화면을 flex로 표시 (가운데 정렬 위함)
               gameSection.style.display = 'none';
               userEmailSpan.textContent = '';
               lotteryResultDiv.innerHTML = ''; // 추첨 결과 초기화
+              historyContainer.innerHTML = '<h3>추첨 기록</h3>'; // 기록 컨테이너 초기화
           }
       });
 
