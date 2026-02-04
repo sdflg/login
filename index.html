@@ -196,28 +196,34 @@
       apiTestBtn.addEventListener('click', async () => {
           const API_KEY = "0f267767a844a676d882efe37502ce2bcc0ee90ff0070d90e787464f5f1136f5";
           const sidoNameEncoded = encodeURIComponent('서울');
-          const url = "https://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getCtprvnRltmMesureDnsty" +
+          const originalUrl = "https://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getCtprvnRltmMesureDnsty" +
                       "?serviceKey=" + API_KEY +
                       "&returnType=json" +
                       "&numOfRows=1" +
                       "&pageNo=1" +
                       "&sidoName=" + sidoNameEncoded +
                       "&ver=1.0";
+          
+          // CORS 우회를 위한 allorigins 프록시 사용
+          const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(originalUrl);
 
           try {
-              const response = await fetch(url);
-              const data = await response.json();
-              console.log("공공데이터 API 응답:", data);
+              const response = await fetch(proxyUrl);
+              const data = await response.json(); // allorigins 응답 파싱
+              
+              // allorigins 응답 내부의 실제 API 데이터 파싱
+              const realData = JSON.parse(data.contents);
+              console.log("공공데이터 API 응답 (프록시):", realData);
 
-              if (data.response.body.items && data.response.body.items.length > 0) {
-                  const pm10Value = data.response.body.items[0].pm10Value;
+              if (realData.response.body.items && realData.response.body.items.length > 0) {
+                  const pm10Value = realData.response.body.items[0].pm10Value;
                   alert("서울 미세먼지 농도: " + pm10Value + "㎍/㎥ 입니다.");
               } else {
                   alert("미세먼지 정보를 찾을 수 없습니다.");
               }
           } catch (error) {
               console.error("API 호출 실패:", error);
-              alert("API 호출 실패! 콘솔을 확인하세요.");
+              alert("에러 발생: " + error.message);
           }
       });
 
